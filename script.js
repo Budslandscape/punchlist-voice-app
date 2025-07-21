@@ -1,77 +1,43 @@
-const startBtn = document.getElementById("start");
-const retryBtn = document.getElementById("retry");
-const sendBtn = document.getElementById("send");
-const transcriptBox = document.getElementById("transcript");
-const siteSelect = document.getElementById("site");
-const status = document.getElementById("status");
+// Your existing setup...
 
-const ZAPIER_WEBHOOK_URL = "https://hooks.zapier.com/hooks/catch/310398021/310411788/";
+const testWebhookUrl = "https://hooks.zapier.com/hooks/catch/310398021/310411788/";
 
-let recognition;
-try {
-  recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-  recognition.continuous = false;
-  recognition.interimResults = false;
-
-  recognition.onstart = () => {
-    status.textContent = "🎤 Listening...";
-  };
-
-  recognition.onresult = (event) => {
-    const transcript = event.results[0][0].transcript;
-    transcriptBox.value = transcript;
-    status.textContent = "✅ Transcribed!";
-  };
-
-  recognition.onerror = (e) => {
-    status.textContent = "❌ Error: " + e.error;
-  };
-
-  recognition.onend = () => {
-    if (!transcriptBox.value) {
-      status.textContent = "⚠️ Nothing captured. Try again.";
-    }
-  };
-} catch (err) {
-  status.textContent = "Speech recognition not supported in this browser.";
+function sendTestStatusUpdate() {
+  fetch(testWebhookUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      site: "Site A",
+      task: "Fix fence post",
+      status: "Complete"
+    })
+  })
+    .then((response) => {
+      if (response.ok) {
+        alert("✅ Test update sent to Zapier. Go check your Zap!");
+      } else {
+        alert("❌ Something went wrong. Check your webhook URL or try again.");
+      }
+    })
+    .catch((error) => {
+      alert("❌ Failed to send test update: " + error.message);
+    });
 }
 
-startBtn.onclick = () => {
-  if (!siteSelect.value) {
-    status.textContent = "⚠️ Please select a site.";
-    return;
-  }
-  transcriptBox.value = "";
-  recognition.start();
-};
+// Add a temporary button to the page to trigger it
+window.addEventListener("DOMContentLoaded", () => {
+  const testButton = document.createElement("button");
+  testButton.textContent = "Send Test Update to Zapier";
+  testButton.style.marginTop = "20px";
+  testButton.style.padding = "10px";
+  testButton.style.background = "#007BFF";
+  testButton.style.color = "#fff";
+  testButton.style.border = "none";
+  testButton.style.borderRadius = "8px";
+  testButton.style.cursor = "pointer";
+  testButton.onclick = sendTestStatusUpdate;
 
-retryBtn.onclick = () => {
-  transcriptBox.value = "";
-  status.textContent = "Cleared. Try again.";
-};
-
-sendBtn.onclick = () => {
-  const site = siteSelect.value;
-  const task = transcriptBox.value;
-
-  if (!site || !task) {
-    status.textContent = "⚠️ Site and task required.";
-    return;
-  }
-
-  status.textContent = "📤 Sending...";
-
-  fetch(ZAPIER_WEBHOOK_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ site: site, task: task })
-  }).then(res => {
-    if (res.ok) {
-      status.textContent = "✅ Task sent to PunchList.";
-      transcriptBox.value = "";
-    } else {
-      status.textContent = "❌ Failed to send.";
-    }
-  });
-};
-
+  document.body.appendChild(testButton);
+});
