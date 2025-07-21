@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PunchList Voice App</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>PunchList Voice</h1>
+  <label for="site">Choose Site:</label>
+  <select id="site">
+    <option value="">-- Select a Site --</option>
+    <option value="Site A">Site A</option>
+    <option value="Site B">Site B</option>
+    <option value="Site C">Site C</option>
+  </select>
+
+  <button id="start">🎙️ Start Recording</button>
+  <button id="retry">🔁 Retry</button>
+  <textarea id="transcript" rows="4" placeholder="Transcribed task appears here..."></textarea>
+  <button id="send">📤 Send to PunchList</button>
+
+  <p id="status"></p>
+
+  <script src="script.js"></script>
+</body>
+</html>
