@@ -1,43 +1,104 @@
-// Your existing setup...
+// === CONFIGURATION ===
+const zapierWebhookURL = "https://hooks.zapier.com/hooks/catch/310398021/310411788/";
+const taskCSVUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQXXdCoJthM6f0KA6kDO_vyQ-jekGEU-dNUWAqfWD46zJ-0w_Z_0R6T9_Us_8ItEmyi-luXXAUvHV4-/pub?output=csv";
 
-const testWebhookUrl = "https://hooks.zapier.com/hooks/catch/310398021/310411788/";
+// === GLOBAL VARIABLES ===
+let recognition;
+let currentSite = "Site A";
+let capturedText = "";
 
-function sendTestStatusUpdate() {
-  fetch(testWebhookUrl, {
+// === SETUP ===
+window.addEventListener("DOMContentLoaded", () => {
+  promptSiteSelection();
+  setupVoiceToText();
+  setupButtons();
+  loadTasks();
+});
+
+// === FUNCTIONS ===
+
+// Prompt builder to choose job site
+function promptSiteSelection() {
+  const site = prompt("Select site: Site A, Site B, or Site C").trim();
+  if (["Site A", "Site B", "Site C"].includes(site)) {
+    currentSite = site;
+  } else {
+    alert("Invalid site selected. Defaulting to Site A.");
+  }
+}
+
+// Set up speech recognition
+function setupVoiceToText() {
+  const startBtn = document.getElementById("startBtn");
+  const retryBtn = document.getElementById("retryBtn");
+  const output = document.getElementById("output");
+
+  if (!("webkitSpeechRecognition" in window)) {
+    alert("Speech recognition not supported in this browser.");
+    return;
+  }
+
+  recognition = new webkitSpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = "en-US";
+
+  recognition.onresult = (event) => {
+    capturedText = event.results[0][0].transcript;
+    output.value = capturedText;
+  };
+
+  recognition.onerror = (event) => {
+    alert("Error: " + event.error);
+  };
+
+  startBtn.onclick = () => {
+    recognition.start();
+  };
+
+  retryBtn.onclick = () => {
+    output.value = "";
+    capturedText = "";
+  };
+}
+
+// Set up buttons for submitting tasks and updating status
+function setupButtons() {
+  document.getElementById("submitBtn").onclick = () => sendToZapier("New");
+  document.getElementById("inProgressBtn").onclick = () => sendToZapier("In Progress");
+  document.getElementById("completeBtn").onclick = () => sendToZapier("Complete");
+}
+
+// Send task update to Zapier
+function sendToZapier(status) {
+  const task = capturedText || document.getElementById("output").value.trim();
+  if (!task) return alert("Please record or type a task before submitting.");
+
+  fetch(zapierWebhookURL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      site: "Site A",
-      task: "Fix fence post",
-      status: "Complete"
+      site: currentSite,
+      task: task,
+      status: status
     })
   })
-    .then((response) => {
-      if (response.ok) {
-        alert("✅ Test update sent to Zapier. Go check your Zap!");
+    .then((res) => {
+      if (res.ok) {
+        alert(`✅ Task marked as "${status}" and sent for ${currentSite}`);
+        document.getElementById("output").value = "";
+        capturedText = "";
       } else {
-        alert("❌ Something went wrong. Check your webhook URL or try again.");
+        alert("❌ Failed to send. Please try again.");
       }
     })
-    .catch((error) => {
-      alert("❌ Failed to send test update: " + error.message);
+    .catch((err) => {
+      console.error(err);
+      alert("❌ Error: " + err.message);
     });
 }
 
-// Add a temporary button to the page to trigger it
-window.addEventListener("DOMContentLoaded", () => {
-  const testButton = document.createElement("button");
-  testButton.textContent = "Send Test Update to Zapier";
-  testButton.style.marginTop = "20px";
-  testButton.style.padding = "10px";
-  testButton.style.background = "#007BFF";
-  testButton.style.color = "#fff";
-  testButton.style.border = "none";
-  testButton.style.borderRadius = "8px";
-  testButton.style.cursor = "pointer";
-  testButton.onclick = sendTestStatusUpdate;
-
-  document.body.appendChild(testButton);
-});
+// Load and display tasks from Google Sheets
+function loa
