@@ -13,22 +13,24 @@ window.addEventListener("DOMContentLoaded", () => {
   setupVoiceToText();
   setupButtons();
   loadTasks();
-  setInterval(loadTasks, 30000); // Refresh task list every 30 seconds
+  updateTimestamp();
+  setInterval(() => {
+    loadTasks();
+    updateTimestamp();
+  }, 30000); // Auto-refresh every 30 seconds
 });
 
 // === FUNCTIONS ===
-
-// Site selection via dropdown
 function setupSiteDropdown() {
   const dropdown = document.getElementById("siteSelector");
   currentSite = dropdown.value;
   dropdown.addEventListener("change", (e) => {
     currentSite = e.target.value;
     loadTasks();
+    updateTimestamp();
   });
 }
 
-// Set up voice-to-text
 function setupVoiceToText() {
   const startBtn = document.getElementById("startBtn");
   const retryBtn = document.getElementById("retryBtn");
@@ -60,14 +62,12 @@ function setupVoiceToText() {
   };
 }
 
-// Button actions
 function setupButtons() {
-  document.getElementById("submitBtn").onclick = () => sendToWebhook("New");
+  document.getElementById("submitBtn").onclick = () => sendToWebhook("To Do");
   document.getElementById("inProgressBtn").onclick = () => sendToWebhook("In Progress");
   document.getElementById("completeBtn").onclick = () => sendToWebhook("Complete");
 }
 
-// Send task to Make webhook
 function sendToWebhook(status) {
   const task = capturedText || document.getElementById("output").value.trim();
   if (!task) return alert("Please record or type a task first.");
@@ -83,6 +83,7 @@ function sendToWebhook(status) {
         document.getElementById("output").value = "";
         capturedText = "";
         loadTasks();
+        updateTimestamp();
       } else {
         alert("❌ Failed to send. Try again.");
       }
@@ -93,10 +94,7 @@ function sendToWebhook(status) {
     });
 }
 
-// Load live tasks from Google Sheet
 function loadTasks() {
-  console.log("🔁 Loading tasks for:", currentSite);
-
   fetch(taskCSVUrl)
     .then((res) => res.text())
     .then((csv) => {
@@ -105,12 +103,21 @@ function loadTasks() {
       taskList.innerHTML = "";
 
       rows.forEach(row => {
-        const [site, task, status] = row.split(",");
-        console.log("➡️ Row:", row);
+        const columns = row.split(",");
+        const site = columns[0];
+        const status = columns[columns.length - 1]?.trim();
+        const task = columns.slice(1, columns.length - 1).join(",").trim();
 
         if (site && task && site.trim() === currentSite) {
           const li = document.createElement("li");
-          li.textContent = `${task.trim()} (${(status || "Pending").trim()})`;
+          let cssClass = "unknown";
+
+          if (status.toLowerCase() === "in progress") cssClass = "in-progress";
+          else if (status.toLowerCase() === "complete") cssClass = "complete";
+          else if (status.toLowerCase() === "to do") cssClass = "todo";
+
+          li.className = cssClass;
+          li.textContent = `${task} (${status || "Pending"})`;
           taskList.appendChild(li);
         }
       });
@@ -123,4 +130,10 @@ function loadTasks() {
       console.error("❌ Error loading tasks:", err);
       document.getElementById("taskList").innerHTML = "<li>⚠️ Could not load tasks</li>";
     });
+}
+
+function updateTimestamp() {
+  const now = new Date();
+  document.getElementById("timestamp").textContent =
+    "Last updated: " + now.toLocaleString();
 }
