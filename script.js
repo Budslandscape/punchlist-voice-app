@@ -47,8 +47,8 @@ function setupVoiceToText() {
   recognition.lang = "en-US";
 
   recognition.onresult = (event) => {
-    let result = event.results[0][0].transcript.trim();
-    capturedText = result.charAt(0).toUpperCase() + result.slice(1);
+    capturedText = event.results[0][0].transcript;
+    capturedText = capturedText.charAt(0).toUpperCase() + capturedText.slice(1);
     output.value = capturedText;
   };
 
@@ -100,6 +100,7 @@ function loadTasks() {
     .then((res) => res.text())
     .then((csv) => {
       const rows = csv.split("\n").slice(1);
+      const tasks = { "To Do": [], "In Progress": [], "Complete": [] };
       const taskList = document.getElementById("taskList");
       taskList.innerHTML = "";
 
@@ -107,39 +108,40 @@ function loadTasks() {
         const columns = row.split(",");
         const site = columns[0]?.trim();
         const task = columns[1]?.trim();
-        const status = columns[2]?.trim().toLowerCase();
+        const status = columns[2]?.trim();
 
         if (site === currentSite && task) {
           const li = document.createElement("li");
+          li.className = getStatusClass(status);
+          li.style.border = "1px solid #ccc";
+          li.style.display = "flex";
+          li.style.justifyContent = "space-between";
+          li.style.alignItems = "center";
 
-          let cssClass = "unknown";
-          if (status === "to do") cssClass = "todo";
-          else if (status === "in progress") cssClass = "in-progress";
-          else if (status === "complete") cssClass = "complete";
+          const span = document.createElement("span");
+          span.textContent = task;
+          span.style.color = "black";
 
-          li.className = cssClass;
+          const select = document.createElement("select");
+          select.innerHTML = `
+            <option value="To Do" ${status === "To Do" ? "selected" : ""}>To Do</option>
+            <option value="In Progress" ${status === "In Progress" ? "selected" : ""}>In Progress</option>
+            <option value="Complete" ${status === "Complete" ? "selected" : ""}>Complete</option>
+          `;
+          select.style.marginLeft = "1rem";
+          select.style.color = "black";
 
-          const textSpan = document.createElement("span");
-          textSpan.textContent = `${task} (${status || "Pending"})`;
+          li.appendChild(span);
+          li.appendChild(select);
 
-          const dropdown = document.createElement("select");
-          dropdown.className = "status-dropdown";
-          ["To Do", "In Progress", "Complete"].forEach(option => {
-            const opt = document.createElement("option");
-            opt.value = option;
-            opt.textContent = option;
-            if (option.toLowerCase() === status) opt.selected = true;
-            dropdown.appendChild(opt);
-          });
-
-          dropdown.addEventListener("change", () => {
-            li.className = getStatusClass(dropdown.value);
-          });
-
-          li.appendChild(textSpan);
-          li.appendChild(dropdown);
-          taskList.appendChild(li);
+          if (tasks[status]) {
+            tasks[status].push(li);
+          }
         }
+      });
+
+      [...tasks["To Do"], ...tasks["In Progress"], ...tasks["Complete"]].forEach(task => {
+        taskList.appendChild(task);
       });
 
       if (!taskList.innerHTML) {
@@ -152,17 +154,15 @@ function loadTasks() {
     });
 }
 
-function getStatusClass(status) {
-  switch (status.toLowerCase()) {
-    case "to do": return "todo";
-    case "in progress": return "in-progress";
-    case "complete": return "complete";
-    default: return "unknown";
-  }
-}
-
 function updateTimestamp() {
   const now = new Date();
   document.getElementById("timestamp").textContent =
     "Last updated: " + now.toLocaleString();
+}
+
+function getStatusClass(status) {
+  if (status === "To Do") return "todo";
+  if (status === "In Progress") return "in-progress";
+  if (status === "Complete") return "complete";
+  return "unknown";
 }
