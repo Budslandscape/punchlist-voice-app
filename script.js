@@ -1,13 +1,10 @@
-// === CONFIGURATION ===
 const zapierWebhookURL = "https://hook.eu2.make.com/m7eegp093miks8ar3vy3s51bbjvayymg";
 const taskCSVUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQXXdCoJthM6f0KA6kDO_vyQ-jekGEU-dNUWAqfWD46zJ-0w_Z_0R6T9_Us_8ItEmyi-luXXAUvHV4-/pub?output=csv";
 
-// === GLOBAL VARIABLES ===
 let recognition;
 let currentSite = "Site A";
 let capturedText = "";
 
-// === SETUP ===
 window.addEventListener("DOMContentLoaded", () => {
   setupSiteDropdown();
   setupVoiceToText();
@@ -17,10 +14,9 @@ window.addEventListener("DOMContentLoaded", () => {
   setInterval(() => {
     loadTasks();
     updateTimestamp();
-  }, 30000); // Auto-refresh every 30 seconds
+  }, 30000);
 });
 
-// === FUNCTIONS ===
 function setupSiteDropdown() {
   const dropdown = document.getElementById("siteSelector");
   currentSite = dropdown.value;
@@ -47,7 +43,8 @@ function setupVoiceToText() {
   recognition.lang = "en-US";
 
   recognition.onresult = (event) => {
-    capturedText = capitalize(event.results[0][0].transcript);
+    let text = event.results[0][0].transcript;
+    capturedText = text.charAt(0).toUpperCase() + text.slice(1);
     output.value = capturedText;
   };
 
@@ -60,10 +57,6 @@ function setupVoiceToText() {
     output.value = "";
     capturedText = "";
   };
-}
-
-function capitalize(str) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 function setupButtons() {
@@ -97,107 +90,63 @@ function sendToWebhook(status) {
     });
 }
 
-function deleteTask(task) {
-  if (!confirm(`Delete task: "${task}"?`)) return;
-
-  fetch(zapierWebhookURL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ site: currentSite, task, status: "Delete" })
-  })
-    .then((res) => {
-      if (res.ok) {
-        loadTasks();
-        updateTimestamp();
-      } else {
-        alert("❌ Failed to delete.");
-      }
-    })
-    .catch((err) => {
-      console.error(err);
-      alert("❌ Error deleting task.");
-    });
-}
-
-function updateTaskStatus(task, newStatus) {
-  fetch(zapierWebhookURL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ site: currentSite, task, status: newStatus })
-  })
-    .then((res) => {
-      if (res.ok) {
-        loadTasks();
-        updateTimestamp();
-      } else {
-        alert("❌ Failed to update task.");
-      }
-    })
-    .catch((err) => {
-      console.error(err);
-      alert("❌ Error updating task.");
-    });
-}
-
 function loadTasks() {
   fetch(taskCSVUrl)
     .then((res) => res.text())
     .then((csv) => {
       const rows = csv.split("\n").slice(1);
-      const allTasks = [];
+      const grouped = { "To Do": [], "In Progress": [], "Complete": [], unknown: [] };
 
       rows.forEach(row => {
-        const columns = row.split(",");
-        const site = columns[0]?.trim();
-        const task = columns[1]?.trim();
-        const status = columns[2]?.trim();
+        const cols = row.split(",");
+        const site = cols[0]?.trim();
+        const task = cols[1]?.trim();
+        const status = cols[2]?.trim();
 
         if (site === currentSite && task) {
-          allTasks.push({ task, status });
+          const item = { task, status };
+          if (grouped[status]) grouped[status].push(item);
+          else grouped.unknown.push(item);
         }
       });
 
       const taskList = document.getElementById("taskList");
       taskList.innerHTML = "";
 
-      const groups = {
-        "To Do": [],
-        "In Progress": [],
-        "Complete": [],
-        "Other": []
-      };
-
-      allTasks.forEach(t => {
-        const key = ["To Do", "In Progress", "Complete"].includes(t.status) ? t.status : "Other";
-        groups[key].push(t);
-      });
-
-      Object.entries(groups).forEach(([group, tasks]) => {
-        tasks.forEach(t => {
+      ["To Do", "In Progress", "Complete", "unknown"].forEach(group => {
+        grouped[group].forEach(item => {
           const li = document.createElement("li");
-          li.className = getStatusClass(t.status);
+          const cssClass = group.toLowerCase().replace(" ", "-") || "unknown";
+          li.className = cssClass;
 
-          const taskSpan = document.createElement("span");
-          taskSpan.textContent = t.task;
+          const taskInfo = document.createElement("div");
+          taskInfo.className = "task-info";
+          taskInfo.textContent = `${item.task}`;
 
-          const select = document.createElement("select");
+          const statusSelect = document.createElement("select");
+          statusSelect.className = "status-dropdown";
           ["To Do", "In Progress", "Complete"].forEach(opt => {
             const option = document.createElement("option");
             option.value = opt;
-            option.text = opt;
-            if (opt === t.status) option.selected = true;
-            select.appendChild(option);
+            option.textContent = opt;
+            if (opt === item.status) option.selected = true;
+            statusSelect.appendChild(option);
           });
-          select.onchange = () => updateTaskStatus(t.task, select.value);
 
-          const delBtn = document.createElement("button");
-          delBtn.textContent = "🗑️";
-          delBtn.style.marginLeft = "10px";
-          delBtn.onclick = () => deleteTask(t.task);
+          statusSelect.onchange = () => sendToWebhook(statusSelect.value);
 
-          li.appendChild(taskSpan);
-          li.appendChild(select);
-          li.appendChild(delBtn);
+          const deleteBtn = document.createElement("button");
+          deleteBtn.textContent = "🗑️";
+          deleteBtn.className = "delete-btn";
+          deleteBtn.onclick = () => alert("🛠️ Delete functionality coming soon");
+
+          const controls = document.createElement("div");
+          controls.className = "task-controls";
+          controls.appendChild(statusSelect);
+          controls.appendChild(deleteBtn);
+
+          li.appendChild(taskInfo);
+          li.appendChild(controls);
           taskList.appendChild(li);
         });
       });
@@ -210,14 +159,6 @@ function loadTasks() {
       console.error("❌ Error loading tasks:", err);
       document.getElementById("taskList").innerHTML = "<li>⚠️ Could not load tasks</li>";
     });
-}
-
-function getStatusClass(status) {
-  const s = status?.toLowerCase();
-  if (s === "to do") return "todo";
-  if (s === "in progress") return "in-progress";
-  if (s === "complete") return "complete";
-  return "unknown";
 }
 
 function updateTimestamp() {
