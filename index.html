@@ -16,10 +16,10 @@
     .container {
       max-width: 600px;
       margin: 0 auto;
-      background: #444;
+      background: #3a3a3a;
       border-radius: 8px;
       padding: 1.5rem;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
     }
     h1 {
       color: #ffffff;
@@ -30,12 +30,10 @@
     }
     label, select {
       font-size: 16px;
-      color: #fff;
     }
     select {
       padding: 0.4rem;
       margin-left: 0.5rem;
-      border-radius: 4px;
     }
     textarea {
       width: 100%;
@@ -60,9 +58,9 @@
       background-color: #007bff;
       color: white;
     }
-    .submit { background-color: #dc3545; color: black; }
-    .progress { background-color: #ffc107; color: black; }
-    .complete { background-color: #0b8c38; color: black; }
+    .submit { background-color: #dc3545; color: black; } /* Red */
+    .progress { background-color: #ffc107; color: black; } /* Yellow */
+    .complete { background-color: #0b8c38; color: black; } /* Green */
 
     ul#taskList {
       margin-top: 1.5rem;
@@ -77,11 +75,24 @@
       text-align: left;
       border: 1px solid #ccc;
       color: black;
+      background-color: #f4f4f4;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-    .todo { background-color: #f8d7da; }
-    .in-progress { background-color: #fff3cd; }
-    .complete { background-color: #d4edda; }
-    .unknown { background-color: #e2e3e5; }
+    ul#taskList li select {
+      margin-left: auto;
+      font-size: 14px;
+      padding: 0.2rem;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      color: black;
+      background-color: white;
+    }
+    .todo { background-color: #f8d7da !important; }
+    .in-progress { background-color: #fff3cd !important; }
+    .complete { background-color: #d4edda !important; }
+    .unknown { background-color: #e2e3e5 !important; }
 
     #timestamp {
       margin-top: 0.5rem;
