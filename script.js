@@ -100,10 +100,10 @@ function loadTasks() {
     .then((res) => res.text())
     .then((csv) => {
       const rows = csv.split("\n").slice(1);
-      const tasks = { "To Do": [], "In Progress": [], "Complete": [] };
       const taskList = document.getElementById("taskList");
       taskList.innerHTML = "";
 
+      const tasks = [];
       rows.forEach(row => {
         const columns = row.split(",");
         const site = columns[0]?.trim();
@@ -111,38 +111,48 @@ function loadTasks() {
         const status = columns[2]?.trim();
 
         if (site === currentSite && task) {
-          const li = document.createElement("li");
-          li.className = getStatusClass(status);
-          li.style.border = "1px solid #ccc";
-          li.style.display = "flex";
-          li.style.justifyContent = "space-between";
-          li.style.alignItems = "center";
-
-          const span = document.createElement("span");
-          span.textContent = task;
-          span.style.color = "black";
-
-          const select = document.createElement("select");
-          select.innerHTML = `
-            <option value="To Do" ${status === "To Do" ? "selected" : ""}>To Do</option>
-            <option value="In Progress" ${status === "In Progress" ? "selected" : ""}>In Progress</option>
-            <option value="Complete" ${status === "Complete" ? "selected" : ""}>Complete</option>
-          `;
-          select.style.marginLeft = "1rem";
-          select.style.color = "black";
-
-          li.appendChild(span);
-          li.appendChild(select);
-
-          if (tasks[status]) {
-            tasks[status].push(li);
-          }
+          tasks.push({ task, status });
         }
       });
 
-      [...tasks["To Do"], ...tasks["In Progress"], ...tasks["Complete"]].forEach(task => {
-        taskList.appendChild(task);
+      const grouped = { "To Do": [], "In Progress": [], "Complete": [] };
+      tasks.forEach(t => {
+        if (grouped[t.status]) grouped[t.status].push(t);
+        else grouped["To Do"].push(t);
       });
+
+      const renderTasks = (status, cssClass) => {
+        grouped[status].forEach(({ task }) => {
+          const li = document.createElement("li");
+          li.className = cssClass;
+
+          const span = document.createElement("span");
+          span.textContent = `${task} (${status})`;
+
+          const select = document.createElement("select");
+          ["To Do", "In Progress", "Complete"].forEach(opt => {
+            const option = document.createElement("option");
+            option.value = opt;
+            option.textContent = opt;
+            if (opt === status) option.selected = true;
+            select.appendChild(option);
+          });
+          select.onchange = () => {
+            sendToWebhook(select.value, task);
+          };
+
+          select.style.float = "right";
+          select.style.marginLeft = "10px";
+
+          li.appendChild(span);
+          li.appendChild(select);
+          taskList.appendChild(li);
+        });
+      };
+
+      renderTasks("To Do", "todo");
+      renderTasks("In Progress", "in-progress");
+      renderTasks("Complete", "complete");
 
       if (!taskList.innerHTML) {
         taskList.innerHTML = `<li>⚠️ No tasks found for ${currentSite}</li>`;
@@ -158,11 +168,4 @@ function updateTimestamp() {
   const now = new Date();
   document.getElementById("timestamp").textContent =
     "Last updated: " + now.toLocaleString();
-}
-
-function getStatusClass(status) {
-  if (status === "To Do") return "todo";
-  if (status === "In Progress") return "in-progress";
-  if (status === "Complete") return "complete";
-  return "unknown";
 }
