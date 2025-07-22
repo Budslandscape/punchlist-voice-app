@@ -116,8 +116,12 @@ function loadTasks() {
       ["To Do", "In Progress", "Complete", "unknown"].forEach(group => {
         grouped[group].forEach(item => {
           const li = document.createElement("li");
-          const cssClass = group.toLowerCase().replace(" ", "-") || "unknown";
-          li.className = cssClass;
+          let cssClass = "unknown";
+if (item.status === "To Do") cssClass = "todo";
+else if (item.status === "In Progress") cssClass = "in-progress";
+else if (item.status === "Complete") cssClass = "complete";
+li.className = cssClass;
+
 
           const taskInfo = document.createElement("div");
           taskInfo.className = "task-info";
