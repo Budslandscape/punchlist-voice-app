@@ -47,8 +47,7 @@ function setupVoiceToText() {
   recognition.lang = "en-US";
 
   recognition.onresult = (event) => {
-    capturedText = event.results[0][0].transcript;
-    capturedText = capturedText.charAt(0).toUpperCase() + capturedText.slice(1);
+    capturedText = capitalizeFirstLetter(event.results[0][0].transcript);
     output.value = capturedText;
   };
 
@@ -69,9 +68,11 @@ function setupButtons() {
   document.getElementById("completeBtn").onclick = () => sendToWebhook("Complete");
 }
 
-function sendToWebhook(status) {
-  const task = capturedText || document.getElementById("output").value.trim();
-  if (!task) return alert("Please record or type a task first.");
+function sendToWebhook(status, taskText = null) {
+  const task = taskText || capturedText || document.getElementById("output").value.trim();
+  if (!task) {
+    if (!taskText) return; // silently return if called from dropdown without new input
+  }
 
   fetch(zapierWebhookURL, {
     method: "POST",
@@ -80,9 +81,11 @@ function sendToWebhook(status) {
   })
     .then((res) => {
       if (res.ok) {
-        alert(`✅ Task sent as "${status}" for ${currentSite}`);
-        document.getElementById("output").value = "";
-        capturedText = "";
+        if (!taskText) {
+          alert(`✅ Task sent as "${status}" for ${currentSite}`);
+          document.getElementById("output").value = "";
+          capturedText = "";
+        }
         loadTasks();
         updateTimestamp();
       } else {
@@ -103,56 +106,50 @@ function loadTasks() {
       const taskList = document.getElementById("taskList");
       taskList.innerHTML = "";
 
-      const tasks = [];
+      const grouped = { "To Do": [], "In Progress": [], "Complete": [], "Unknown": [] };
+
       rows.forEach(row => {
         const columns = row.split(",");
         const site = columns[0]?.trim();
         const task = columns[1]?.trim();
-        const status = columns[2]?.trim();
+        const statusRaw = columns[2]?.trim();
+        const status = statusRaw ? statusRaw.toLowerCase() : "unknown";
 
         if (site === currentSite && task) {
-          tasks.push({ task, status });
-        }
-      });
-
-      const grouped = { "To Do": [], "In Progress": [], "Complete": [] };
-      tasks.forEach(t => {
-        if (grouped[t.status]) grouped[t.status].push(t);
-        else grouped["To Do"].push(t);
-      });
-
-      const renderTasks = (status, cssClass) => {
-        grouped[status].forEach(({ task }) => {
           const li = document.createElement("li");
+
+          let cssClass = "unknown";
+          if (status === "to do") cssClass = "todo";
+          else if (status === "in progress") cssClass = "in-progress";
+          else if (status === "complete") cssClass = "complete";
+
           li.className = cssClass;
 
-          const span = document.createElement("span");
-          span.textContent = `${task} (${status})`;
-
-          const select = document.createElement("select");
+          const statusSelect = document.createElement("select");
           ["To Do", "In Progress", "Complete"].forEach(opt => {
             const option = document.createElement("option");
             option.value = opt;
             option.textContent = opt;
-            if (opt === status) option.selected = true;
-            select.appendChild(option);
+            if (opt.toLowerCase() === status) option.selected = true;
+            statusSelect.appendChild(option);
           });
-          select.onchange = () => {
-            sendToWebhook(select.value, task);
-          };
 
-          select.style.float = "right";
-          select.style.marginLeft = "10px";
+          statusSelect.addEventListener("change", (e) => {
+            sendToWebhook(e.target.value, task);
+          });
 
-          li.appendChild(span);
-          li.appendChild(select);
-          taskList.appendChild(li);
-        });
-      };
+          li.textContent = `${task} (`;
+          li.appendChild(statusSelect);
+          li.append(" )");
 
-      renderTasks("To Do", "todo");
-      renderTasks("In Progress", "in-progress");
-      renderTasks("Complete", "complete");
+          if (status === "to do") grouped["To Do"].push(li);
+          else if (status === "in progress") grouped["In Progress"].push(li);
+          else if (status === "complete") grouped["Complete"].push(li);
+          else grouped["Unknown"].push(li);
+        }
+      });
+
+      Object.values(grouped).forEach(group => group.forEach(item => taskList.appendChild(item)));
 
       if (!taskList.innerHTML) {
         taskList.innerHTML = `<li>⚠️ No tasks found for ${currentSite}</li>`;
@@ -168,4 +165,8 @@ function updateTimestamp() {
   const now = new Date();
   document.getElementById("timestamp").textContent =
     "Last updated: " + now.toLocaleString();
+}
+
+function capitalizeFirstLetter(text) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
