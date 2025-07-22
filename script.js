@@ -103,24 +103,25 @@ function loadTasks() {
       taskList.innerHTML = "";
 
       rows.forEach(row => {
-        const columns = row.split(",");
-        const site = columns[0];
-        const status = columns[columns.length - 1]?.trim();
-        const task = columns.slice(1, columns.length - 1).join(",").trim();
+rows.forEach(row => {
+  const columns = row.split(",");
+  const site = columns[0]?.trim();
+  const task = columns[1]?.trim();
+  const status = columns[2]?.trim().toLowerCase();
 
-        if (site && task && site.trim() === currentSite) {
-          const li = document.createElement("li");
-          let cssClass = "unknown";
+  if (site === currentSite && task) {
+    const li = document.createElement("li");
 
-          if (status.toLowerCase() === "in progress") cssClass = "in-progress";
-          else if (status.toLowerCase() === "complete") cssClass = "complete";
-          else if (status.toLowerCase() === "to do") cssClass = "todo";
+    let cssClass = "unknown";
+    if (status === "to do") cssClass = "todo";
+    else if (status === "in progress") cssClass = "in-progress";
+    else if (status === "complete") cssClass = "complete";
 
-          li.className = cssClass;
-          li.textContent = `${task} (${status || "Pending"})`;
-          taskList.appendChild(li);
-        }
-      });
+    li.className = cssClass;
+    li.textContent = `${task} (${status || "Pending"})`;
+    taskList.appendChild(li);
+  }
+});
 
       if (!taskList.innerHTML) {
         taskList.innerHTML = `<li>⚠️ No tasks found for ${currentSite}</li>`;
