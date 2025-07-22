@@ -7,34 +7,35 @@ let recognition;
 let currentSite = "Site A";
 let capturedText = "";
 
-// === INITIALISE ON LOAD ===
+// === SETUP ===
 window.addEventListener("DOMContentLoaded", () => {
-  promptSiteSelection();
+  setupSiteDropdown();
   setupVoiceToText();
   setupButtons();
   loadTasks();
+  setInterval(loadTasks, 30000); // Refresh task list every 30s
 });
 
 // === FUNCTIONS ===
 
-// Prompt builder to choose a job site
-function promptSiteSelection() {
-  const site = prompt("Select site: Site A, Site B, or Site C")?.trim();
-  if (["Site A", "Site B", "Site C"].includes(site)) {
-    currentSite = site;
-  } else {
-    alert("Invalid site selected. Defaulting to Site A.");
-  }
+// Site selection via dropdown
+function setupSiteDropdown() {
+  const dropdown = document.getElementById("siteSelector");
+  currentSite = dropdown.value;
+  dropdown.addEventListener("change", (e) => {
+    currentSite = e.target.value;
+    loadTasks();
+  });
 }
 
-// Set up speech-to-text
+// Set up voice-to-text
 function setupVoiceToText() {
   const startBtn = document.getElementById("startBtn");
   const retryBtn = document.getElementById("retryBtn");
   const output = document.getElementById("output");
 
   if (!("webkitSpeechRecognition" in window)) {
-    alert("❌ Speech recognition is not supported in this browser. Please use Chrome.");
+    alert("❌ Speech recognition not supported. Use Chrome.");
     return;
   }
 
@@ -49,7 +50,7 @@ function setupVoiceToText() {
   };
 
   recognition.onerror = (event) => {
-    alert("Error: " + event.error);
+    alert("Speech error: " + event.error);
   };
 
   startBtn.onclick = () => recognition.start();
@@ -59,55 +60,49 @@ function setupVoiceToText() {
   };
 }
 
-// Set up task control buttons
+// Buttons
 function setupButtons() {
   document.getElementById("submitBtn").onclick = () => sendToWebhook("New");
   document.getElementById("inProgressBtn").onclick = () => sendToWebhook("In Progress");
   document.getElementById("completeBtn").onclick = () => sendToWebhook("Complete");
 }
 
-// Send task data to Make webhook
+// Send to Make.com
 function sendToWebhook(status) {
   const task = capturedText || document.getElementById("output").value.trim();
-  if (!task) return alert("Please record or type a task before submitting.");
+  if (!task) return alert("Please record or type a task first.");
 
   fetch(zapierWebhookURL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      site: currentSite,
-      task: task,
-      status: status
-    })
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ site: currentSite, task, status })
   })
     .then((res) => {
       if (res.ok) {
-        alert(`✅ Task marked as "${status}" for ${currentSite}`);
+        alert(`✅ Task sent as "${status}" for ${currentSite}`);
         document.getElementById("output").value = "";
         capturedText = "";
-        loadTasks(); // Optionally refresh task list
+        loadTasks();
       } else {
-        alert("❌ Failed to send. Please try again.");
+        alert("❌ Failed to send. Try again.");
       }
     })
     .catch((err) => {
-      console.error("Error sending to webhook:", err);
+      console.error(err);
       alert("❌ Error: " + err.message);
     });
 }
 
-// Load and display tasks from Google Sheet
+// Load live tasks from Google Sheet
 function loadTasks() {
   fetch(taskCSVUrl)
-    .then((response) => response.text())
+    .then((res) => res.text())
     .then((csv) => {
-      const rows = csv.split("\n").slice(1); // Skip header
+      const rows = csv.split("\n").slice(1);
       const taskList = document.getElementById("taskList");
-      taskList.innerHTML = ""; // Clear old list
+      taskList.innerHTML = "";
 
-      rows.forEach((row) => {
+      rows.forEach(row => {
         const [site, task, status] = row.split(",");
         if (site && task && site.trim() === currentSite) {
           const li = document.createElement("li");
@@ -118,7 +113,6 @@ function loadTasks() {
     })
     .catch((err) => {
       console.error("Error loading tasks:", err);
-      const taskList = document.getElementById("taskList");
-      taskList.innerHTML = "<li>⚠️ Failed to load tasks.</li>";
+      document.getElementById("taskList").innerHTML = "<li>⚠️ Could not load tasks</li>";
     });
 }
