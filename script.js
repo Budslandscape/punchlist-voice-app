@@ -17,7 +17,7 @@ window.addEventListener("DOMContentLoaded", () => {
   setInterval(() => {
     loadTasks();
     updateTimestamp();
-  }, 30000); // Auto-refresh every 30 seconds
+  }, 30000);
 });
 
 // === FUNCTIONS ===
@@ -62,18 +62,31 @@ function setupVoiceToText() {
   };
 }
 
-function setupButtons() {
-  document.getElementById("submitBtn").onclick = () => sendToWebhook("To Do");
-  document.getElementById("inProgressBtn").onclick = () => sendToWebhook("In Progress");
-  document.getElementById("completeBtn").onclick = () => sendToWebhook("Complete");
+function capitalizeFirstLetter(text) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-function sendToWebhook(status, taskText = null) {
-  const task = taskText || capturedText || document.getElementById("output").value.trim();
-  if (!task) {
-    if (!taskText) return; // silently return if called from dropdown without new input
-  }
+function setupButtons() {
+  document.getElementById("submitBtn").onclick = () => {
+    const task = capturedText || document.getElementById("output").value.trim();
+    if (!task) return alert("Please record or type a task first.");
+    sendToWebhook(task, "To Do");
+  };
 
+  document.getElementById("inProgressBtn").onclick = () => {
+    const task = capturedText || document.getElementById("output").value.trim();
+    if (!task) return alert("Please record or type a task first.");
+    sendToWebhook(task, "In Progress");
+  };
+
+  document.getElementById("completeBtn").onclick = () => {
+    const task = capturedText || document.getElementById("output").value.trim();
+    if (!task) return alert("Please record or type a task first.");
+    sendToWebhook(task, "Complete");
+  };
+}
+
+function sendToWebhook(task, status) {
   fetch(zapierWebhookURL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -81,11 +94,9 @@ function sendToWebhook(status, taskText = null) {
   })
     .then((res) => {
       if (res.ok) {
-        if (!taskText) {
-          alert(`✅ Task sent as "${status}" for ${currentSite}`);
-          document.getElementById("output").value = "";
-          capturedText = "";
-        }
+        alert(`✅ Task sent as "${status}" for ${currentSite}`);
+        document.getElementById("output").value = "";
+        capturedText = "";
         loadTasks();
         updateTimestamp();
       } else {
@@ -103,53 +114,45 @@ function loadTasks() {
     .then((res) => res.text())
     .then((csv) => {
       const rows = csv.split("\n").slice(1);
-      const taskList = document.getElementById("taskList");
-      taskList.innerHTML = "";
-
-      const grouped = { "To Do": [], "In Progress": [], "Complete": [], "Unknown": [] };
+      const grouped = { "To Do": [], "In Progress": [], "Complete": [] };
 
       rows.forEach(row => {
         const columns = row.split(",");
         const site = columns[0]?.trim();
         const task = columns[1]?.trim();
-        const statusRaw = columns[2]?.trim();
-        const status = statusRaw ? statusRaw.toLowerCase() : "unknown";
+        const status = columns[2]?.trim();
 
         if (site === currentSite && task) {
           const li = document.createElement("li");
+          li.className = statusToClass(status);
 
-          let cssClass = "unknown";
-          if (status === "to do") cssClass = "todo";
-          else if (status === "in progress") cssClass = "in-progress";
-          else if (status === "complete") cssClass = "complete";
-
-          li.className = cssClass;
-
-          const statusSelect = document.createElement("select");
-          ["To Do", "In Progress", "Complete"].forEach(opt => {
-            const option = document.createElement("option");
-            option.value = opt;
-            option.textContent = opt;
-            if (opt.toLowerCase() === status) option.selected = true;
-            statusSelect.appendChild(option);
+          const select = document.createElement("select");
+          ["To Do", "In Progress", "Complete"].forEach(option => {
+            const opt = document.createElement("option");
+            opt.value = option;
+            opt.text = option;
+            if (option === status) opt.selected = true;
+            select.appendChild(opt);
           });
 
-          statusSelect.addEventListener("change", (e) => {
-            sendToWebhook(e.target.value, task);
-          });
+          select.onchange = () => {
+            sendToWebhook(task, select.value);
+          };
 
-          li.textContent = `${task} (`;
-          li.appendChild(statusSelect);
-          li.append(" )");
-
-          if (status === "to do") grouped["To Do"].push(li);
-          else if (status === "in progress") grouped["In Progress"].push(li);
-          else if (status === "complete") grouped["Complete"].push(li);
-          else grouped["Unknown"].push(li);
+          li.textContent = `${task} `;
+          li.appendChild(select);
+          grouped[status]?.push(li);
         }
       });
 
-      Object.values(grouped).forEach(group => group.forEach(item => taskList.appendChild(item)));
+      const taskList = document.getElementById("taskList");
+      taskList.innerHTML = "";
+
+      ["To Do", "In Progress", "Complete"].forEach(status => {
+        if (grouped[status].length) {
+          grouped[status].forEach(li => taskList.appendChild(li));
+        }
+      });
 
       if (!taskList.innerHTML) {
         taskList.innerHTML = `<li>⚠️ No tasks found for ${currentSite}</li>`;
@@ -161,12 +164,16 @@ function loadTasks() {
     });
 }
 
+function statusToClass(status) {
+  const s = status.toLowerCase();
+  if (s === "to do") return "todo";
+  if (s === "in progress") return "in-progress";
+  if (s === "complete") return "complete";
+  return "unknown";
+}
+
 function updateTimestamp() {
   const now = new Date();
   document.getElementById("timestamp").textContent =
     "Last updated: " + now.toLocaleString();
-}
-
-function capitalizeFirstLetter(text) {
-  return text.charAt(0).toUpperCase() + text.slice(1);
 }
