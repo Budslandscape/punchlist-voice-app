@@ -26,6 +26,11 @@
       font-size: 16px;
       padding: 0.5rem;
     }
+    select {
+      font-size: 16px;
+      margin-bottom: 1rem;
+      padding: 0.5rem;
+    }
     button {
       margin: 0.25rem;
       padding: 0.75rem 1rem;
@@ -51,6 +56,13 @@
 <body>
   <div class="container">
     <h1>PunchList Pro</h1>
+
+    <label for="siteSelector">Select Job Site:</label>
+    <select id="siteSelector">
+      <option value="Site A">Site A</option>
+      <option value="Site B">Site B</option>
+      <option value="Site C">Site C</option>
+    </select>
 
     <textarea id="output" placeholder="Speak or type a task..."></textarea><br/>
 
