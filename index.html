@@ -8,7 +8,7 @@
   <style>
     body {
       font-family: 'Roboto Slab', serif;
-      background-color: #2e2e2e;
+      background-color: #2f2f2f;
       padding: 1rem;
       color: #1c1c1c;
       text-align: center;
@@ -16,10 +16,10 @@
     .container {
       max-width: 600px;
       margin: 0 auto;
-      background: #3a3a3a;
+      background: #444;
       border-radius: 8px;
       padding: 1.5rem;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
     h1 {
       color: #ffffff;
@@ -28,12 +28,14 @@
       padding: 0.5rem;
       border-radius: 6px;
     }
-    label, select {
+    label[for="siteSelector"] {
       font-size: 16px;
+      color: white;
     }
     select {
       padding: 0.4rem;
       margin-left: 0.5rem;
+      font-size: 16px;
     }
     textarea {
       width: 100%;
@@ -73,26 +75,23 @@
       border-radius: 4px;
       font-size: 15px;
       text-align: left;
-      border: 1px solid #ccc;
       color: black;
-      background-color: #f4f4f4;
+      border: 1px solid #ccc;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    ul#taskList li select {
+    .todo { background-color: #f8d7da; }
+    .in-progress { background-color: #fff3cd; }
+    .complete { background-color: #d4edda; }
+    .unknown { background-color: #e2e3e5; }
+
+    .status-dropdown {
       margin-left: auto;
       font-size: 14px;
       padding: 0.2rem;
-      border-radius: 4px;
-      border: 1px solid #ccc;
       color: black;
-      background-color: white;
     }
-    .todo { background-color: #f8d7da !important; }
-    .in-progress { background-color: #fff3cd !important; }
-    .complete { background-color: #d4edda !important; }
-    .unknown { background-color: #e2e3e5 !important; }
 
     #timestamp {
       margin-top: 0.5rem;
