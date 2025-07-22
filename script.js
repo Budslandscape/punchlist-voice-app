@@ -47,7 +47,8 @@ function setupVoiceToText() {
   recognition.lang = "en-US";
 
   recognition.onresult = (event) => {
-    capturedText = event.results[0][0].transcript;
+    let result = event.results[0][0].transcript.trim();
+    capturedText = result.charAt(0).toUpperCase() + result.slice(1);
     output.value = capturedText;
   };
 
@@ -117,7 +118,26 @@ function loadTasks() {
           else if (status === "complete") cssClass = "complete";
 
           li.className = cssClass;
-          li.textContent = `${task} (${status || "Pending"})`;
+
+          const textSpan = document.createElement("span");
+          textSpan.textContent = `${task} (${status || "Pending"})`;
+
+          const dropdown = document.createElement("select");
+          dropdown.className = "status-dropdown";
+          ["To Do", "In Progress", "Complete"].forEach(option => {
+            const opt = document.createElement("option");
+            opt.value = option;
+            opt.textContent = option;
+            if (option.toLowerCase() === status) opt.selected = true;
+            dropdown.appendChild(opt);
+          });
+
+          dropdown.addEventListener("change", () => {
+            li.className = getStatusClass(dropdown.value);
+          });
+
+          li.appendChild(textSpan);
+          li.appendChild(dropdown);
           taskList.appendChild(li);
         }
       });
@@ -130,6 +150,15 @@ function loadTasks() {
       console.error("❌ Error loading tasks:", err);
       document.getElementById("taskList").innerHTML = "<li>⚠️ Could not load tasks</li>";
     });
+}
+
+function getStatusClass(status) {
+  switch (status.toLowerCase()) {
+    case "to do": return "todo";
+    case "in progress": return "in-progress";
+    case "complete": return "complete";
+    default: return "unknown";
+  }
 }
 
 function updateTimestamp() {
