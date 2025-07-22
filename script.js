@@ -1,5 +1,5 @@
 // === CONFIGURATION ===
-const zapierWebhookURL = "https://hooks.zapier.com/hooks/catch/310398021/310411788/";
+const zapierWebhookURL = https://hook.eu2.make.com/m7eegp093miks8ar3vy3s51bbjvayymg;
 const taskCSVUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQXXdCoJthM6f0KA6kDO_vyQ-jekGEU-dNUWAqfWD46zJ-0w_Z_0R6T9_Us_8ItEmyi-luXXAUvHV4-/pub?output=csv";
 
 // === GLOBAL VARIABLES ===
