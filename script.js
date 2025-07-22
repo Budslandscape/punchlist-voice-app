@@ -1,147 +1,139 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PunchList Pro</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Roboto Slab', serif;
-      background-color: #f4f4f4;
-      padding: 1rem;
-      color: #1c1c1c;
-      text-align: center;
-    }
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 8px;
-      padding: 1.5rem;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    h1 {
-      color: #003366;
-      margin-bottom: 1rem;
-      border: 2px solid #003366;
-      padding: 0.5rem;
-      border-radius: 6px;
-    }
-    label, select {
-      font-size: 16px;
-    }
-    select {
-      padding: 0.4rem;
-      margin-left: 0.5rem;
-    }
-    textarea {
-      width: 100%;
-      height: 80px;
-      margin: 1rem 0;
-      font-size: 16px;
-      padding: 0.5rem;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      resize: vertical;
-    }
-    button {
-      margin: 0.3rem;
-      padding: 0.5rem 1rem;
-      font-size: 14px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-    }
+// === CONFIGURATION ===
+const zapierWebhookURL = "https://hook.eu2.make.com/m7eegp093miks8ar3vy3s51bbjvayymg";
+const taskCSVUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQXXdCoJthM6f0KA6kDO_vyQ-jekGEU-dNUWAqfWD46zJ-0w_Z_0R6T9_Us_8ItEmyi-luXXAUvHV4-/pub?output=csv";
 
-    /* Primary Buttons */
-    .start, .retry {
-      background-color: #007bff;
-      color: white;
-    }
+// === GLOBAL VARIABLES ===
+let recognition;
+let currentSite = "Site A";
+let capturedText = "";
 
-    /* Status Buttons */
-    button.submit { background-color: #dc3545; color: white; } /* Red */
-    button.progress { background-color: #ffc107; color: black; } /* Yellow */
-    button.complete { background-color: #1e7e34; color: white; } /* Bold Green */
+// === SETUP ===
+window.addEventListener("DOMContentLoaded", () => {
+  setupSiteDropdown();
+  setupVoiceToText();
+  setupButtons();
+  loadTasks();
+  updateTimestamp();
+  setInterval(() => {
+    loadTasks();
+    updateTimestamp();
+  }, 30000); // Auto-refresh every 30 seconds
+});
 
-    /* Task List Styling */
-    ul#taskList {
-      margin-top: 1.5rem;
-      padding-left: 0;
-      list-style: none;
-    }
-    ul#taskList li {
-      margin-bottom: 0.5rem;
-      padding: 0.5rem;
-      border-radius: 4px;
-      font-size: 15px;
-      text-align: left;
-    }
-    ul#taskList li.todo {
-      background-color: #dc3545;
-      color: white;
-    }
-    ul#taskList li.in-progress {
-      background-color: #ffc107;
-      color: black;
-    }
-    ul#taskList li.complete {
-      background-color: #1e7e34;
-      color: white;
-    }
-    ul#taskList li.unknown {
-      background-color: #e2e3e5;
-      color: black;
-    }
+// === FUNCTIONS ===
+function setupSiteDropdown() {
+  const dropdown = document.getElementById("siteSelector");
+  currentSite = dropdown.value;
+  dropdown.addEventListener("change", (e) => {
+    currentSite = e.target.value;
+    loadTasks();
+    updateTimestamp();
+  });
+}
 
-    #timestamp {
-      margin-top: 0.5rem;
-      font-size: 12px;
-      color: #666;
-    }
+function setupVoiceToText() {
+  const startBtn = document.getElementById("startBtn");
+  const retryBtn = document.getElementById("retryBtn");
+  const output = document.getElementById("output");
 
-    @media (max-width: 500px) {
-      .container {
-        padding: 1rem;
+  if (!("webkitSpeechRecognition" in window)) {
+    alert("❌ Speech recognition not supported. Use Chrome.");
+    return;
+  }
+
+  recognition = new webkitSpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = "en-US";
+
+  recognition.onresult = (event) => {
+    capturedText = event.results[0][0].transcript;
+    output.value = capturedText;
+  };
+
+  recognition.onerror = (event) => {
+    alert("Speech error: " + event.error);
+  };
+
+  startBtn.onclick = () => recognition.start();
+  retryBtn.onclick = () => {
+    output.value = "";
+    capturedText = "";
+  };
+}
+
+function setupButtons() {
+  document.getElementById("submitBtn").onclick = () => sendToWebhook("To Do");
+  document.getElementById("inProgressBtn").onclick = () => sendToWebhook("In Progress");
+  document.getElementById("completeBtn").onclick = () => sendToWebhook("Complete");
+}
+
+function sendToWebhook(status) {
+  const task = capturedText || document.getElementById("output").value.trim();
+  if (!task) return alert("Please record or type a task first.");
+
+  fetch(zapierWebhookURL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ site: currentSite, task, status })
+  })
+    .then((res) => {
+      if (res.ok) {
+        alert(`✅ Task sent as "${status}" for ${currentSite}`);
+        document.getElementById("output").value = "";
+        capturedText = "";
+        loadTasks();
+        updateTimestamp();
+      } else {
+        alert("❌ Failed to send. Try again.");
       }
-      button {
-        width: 100%;
-        font-size: 15px;
-        margin-bottom: 0.4rem;
+    })
+    .catch((err) => {
+      console.error(err);
+      alert("❌ Error: " + err.message);
+    });
+}
+
+function loadTasks() {
+  fetch(taskCSVUrl)
+    .then((res) => res.text())
+    .then((csv) => {
+      const rows = csv.split("\n").slice(1);
+      const taskList = document.getElementById("taskList");
+      taskList.innerHTML = "";
+
+      rows.forEach(row => {
+        const columns = row.split(",");
+        const site = columns[0]?.trim();
+        const task = columns[1]?.trim();
+        const status = columns[2]?.trim().toLowerCase();
+
+        if (site === currentSite && task) {
+          const li = document.createElement("li");
+
+          let cssClass = "unknown";
+          if (status === "to do") cssClass = "todo";
+          else if (status === "in progress") cssClass = "in-progress";
+          else if (status === "complete") cssClass = "complete";
+
+          li.className = cssClass;
+          li.textContent = `${task} (${status || "Pending"})`;
+          taskList.appendChild(li);
+        }
+      });
+
+      if (!taskList.innerHTML) {
+        taskList.innerHTML = `<li>⚠️ No tasks found for ${currentSite}</li>`;
       }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>PunchList Pro</h1>
+    })
+    .catch((err) => {
+      console.error("❌ Error loading tasks:", err);
+      document.getElementById("taskList").innerHTML = "<li>⚠️ Could not load tasks</li>";
+    });
+}
 
-    <div>
-      <label for="siteSelector">Select Job Site:</label>
-      <select id="siteSelector">
-        <option value="Site A">Site A</option>
-        <option value="Site B">Site B</option>
-        <option value="Site C">Site C</option>
-      </select>
-    </div>
-
-    <textarea id="output" placeholder="Speak or type a task..."></textarea>
-
-    <button id="startBtn" class="start">🎤 Start Voice Note</button>
-    <button id="retryBtn" class="retry">🔁 Retry</button>
-
-    <div class="action-group">
-      <button id="submitBtn" class="submit">➕ To Do</button>
-      <button id="inProgressBtn" class="progress">🚧 In Progress</button>
-      <button id="completeBtn" class="complete">✅ Complete</button>
-    </div>
-
-    <ul id="taskList"></ul>
-    <div id="timestamp"></div>
-  </div>
-
-  <script src="script.js"></script>
-</body>
-</html>
+function updateTimestamp() {
+  const now = new Date();
+  document.getElementById("timestamp").textContent =
+    "Last updated: " + now.toLocaleString();
+}
