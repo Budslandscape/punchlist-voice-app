@@ -101,4 +101,24 @@ function sendToZapier(status) {
 }
 
 // Load and display tasks from Google Sheets
-function loa
+function loadTasks() {
+  fetch(taskCSVUrl)
+    .then(response => response.text())
+    .then(csv => {
+      const rows = csv.split("\n").slice(1); // Skip header
+      const taskList = document.getElementById("taskList");
+      taskList.innerHTML = ""; // Clear previous
+
+      rows.forEach(row => {
+        const [site, task, status] = row.split(",");
+        if (site && task && site.trim() === currentSite) {
+          const li = document.createElement("li");
+          li.textContent = `${task} (${status || "Pending"})`;
+          taskList.appendChild(li);
+        }
+      });
+    })
+    .catch(err => {
+      console.error("Error loading tasks:", err);
+    });
+}
