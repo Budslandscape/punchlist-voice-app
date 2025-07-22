@@ -17,7 +17,7 @@ window.addEventListener("DOMContentLoaded", () => {
   setInterval(() => {
     loadTasks();
     updateTimestamp();
-  }, 30000);
+  }, 30000); // Auto-refresh every 30 seconds
 });
 
 // === FUNCTIONS ===
@@ -47,7 +47,7 @@ function setupVoiceToText() {
   recognition.lang = "en-US";
 
   recognition.onresult = (event) => {
-    capturedText = capitalizeFirstLetter(event.results[0][0].transcript);
+    capturedText = capitalize(event.results[0][0].transcript);
     output.value = capturedText;
   };
 
@@ -62,31 +62,20 @@ function setupVoiceToText() {
   };
 }
 
-function capitalizeFirstLetter(text) {
-  return text.charAt(0).toUpperCase() + text.slice(1);
+function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 function setupButtons() {
-  document.getElementById("submitBtn").onclick = () => {
-    const task = capturedText || document.getElementById("output").value.trim();
-    if (!task) return alert("Please record or type a task first.");
-    sendToWebhook(task, "To Do");
-  };
-
-  document.getElementById("inProgressBtn").onclick = () => {
-    const task = capturedText || document.getElementById("output").value.trim();
-    if (!task) return alert("Please record or type a task first.");
-    sendToWebhook(task, "In Progress");
-  };
-
-  document.getElementById("completeBtn").onclick = () => {
-    const task = capturedText || document.getElementById("output").value.trim();
-    if (!task) return alert("Please record or type a task first.");
-    sendToWebhook(task, "Complete");
-  };
+  document.getElementById("submitBtn").onclick = () => sendToWebhook("To Do");
+  document.getElementById("inProgressBtn").onclick = () => sendToWebhook("In Progress");
+  document.getElementById("completeBtn").onclick = () => sendToWebhook("Complete");
 }
 
-function sendToWebhook(task, status) {
+function sendToWebhook(status) {
+  const task = capturedText || document.getElementById("output").value.trim();
+  if (!task) return alert("Please record or type a task first.");
+
   fetch(zapierWebhookURL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -94,7 +83,6 @@ function sendToWebhook(task, status) {
   })
     .then((res) => {
       if (res.ok) {
-        alert(`✅ Task sent as "${status}" for ${currentSite}`);
         document.getElementById("output").value = "";
         capturedText = "";
         loadTasks();
@@ -109,12 +97,54 @@ function sendToWebhook(task, status) {
     });
 }
 
+function deleteTask(task) {
+  if (!confirm(`Delete task: "${task}"?`)) return;
+
+  fetch(zapierWebhookURL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ site: currentSite, task, status: "Delete" })
+  })
+    .then((res) => {
+      if (res.ok) {
+        loadTasks();
+        updateTimestamp();
+      } else {
+        alert("❌ Failed to delete.");
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      alert("❌ Error deleting task.");
+    });
+}
+
+function updateTaskStatus(task, newStatus) {
+  fetch(zapierWebhookURL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ site: currentSite, task, status: newStatus })
+  })
+    .then((res) => {
+      if (res.ok) {
+        loadTasks();
+        updateTimestamp();
+      } else {
+        alert("❌ Failed to update task.");
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      alert("❌ Error updating task.");
+    });
+}
+
 function loadTasks() {
   fetch(taskCSVUrl)
     .then((res) => res.text())
     .then((csv) => {
       const rows = csv.split("\n").slice(1);
-      const grouped = { "To Do": [], "In Progress": [], "Complete": [] };
+      const allTasks = [];
 
       rows.forEach(row => {
         const columns = row.split(",");
@@ -123,35 +153,53 @@ function loadTasks() {
         const status = columns[2]?.trim();
 
         if (site === currentSite && task) {
-          const li = document.createElement("li");
-          li.className = statusToClass(status);
-
-          const select = document.createElement("select");
-          ["To Do", "In Progress", "Complete"].forEach(option => {
-            const opt = document.createElement("option");
-            opt.value = option;
-            opt.text = option;
-            if (option === status) opt.selected = true;
-            select.appendChild(opt);
-          });
-
-          select.onchange = () => {
-            sendToWebhook(task, select.value);
-          };
-
-          li.textContent = `${task} `;
-          li.appendChild(select);
-          grouped[status]?.push(li);
+          allTasks.push({ task, status });
         }
       });
 
       const taskList = document.getElementById("taskList");
       taskList.innerHTML = "";
 
-      ["To Do", "In Progress", "Complete"].forEach(status => {
-        if (grouped[status].length) {
-          grouped[status].forEach(li => taskList.appendChild(li));
-        }
+      const groups = {
+        "To Do": [],
+        "In Progress": [],
+        "Complete": [],
+        "Other": []
+      };
+
+      allTasks.forEach(t => {
+        const key = ["To Do", "In Progress", "Complete"].includes(t.status) ? t.status : "Other";
+        groups[key].push(t);
+      });
+
+      Object.entries(groups).forEach(([group, tasks]) => {
+        tasks.forEach(t => {
+          const li = document.createElement("li");
+          li.className = getStatusClass(t.status);
+
+          const taskSpan = document.createElement("span");
+          taskSpan.textContent = t.task;
+
+          const select = document.createElement("select");
+          ["To Do", "In Progress", "Complete"].forEach(opt => {
+            const option = document.createElement("option");
+            option.value = opt;
+            option.text = opt;
+            if (opt === t.status) option.selected = true;
+            select.appendChild(option);
+          });
+          select.onchange = () => updateTaskStatus(t.task, select.value);
+
+          const delBtn = document.createElement("button");
+          delBtn.textContent = "🗑️";
+          delBtn.style.marginLeft = "10px";
+          delBtn.onclick = () => deleteTask(t.task);
+
+          li.appendChild(taskSpan);
+          li.appendChild(select);
+          li.appendChild(delBtn);
+          taskList.appendChild(li);
+        });
       });
 
       if (!taskList.innerHTML) {
@@ -164,8 +212,8 @@ function loadTasks() {
     });
 }
 
-function statusToClass(status) {
-  const s = status.toLowerCase();
+function getStatusClass(status) {
+  const s = status?.toLowerCase();
   if (s === "to do") return "todo";
   if (s === "in progress") return "in-progress";
   if (s === "complete") return "complete";
