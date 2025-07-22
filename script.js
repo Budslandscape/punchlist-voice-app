@@ -25,9 +25,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// === FUNCTIONS ===
-
-// Set up voice recognition
+// === VOICE RECOGNITION ===
 function setupVoiceToText() {
   const startBtn = document.getElementById("startBtn");
   const retryBtn = document.getElementById("retryBtn");
@@ -59,14 +57,14 @@ function setupVoiceToText() {
   };
 }
 
-// Set up submission buttons
+// === BUTTON SETUP ===
 function setupButtons() {
   document.getElementById("submitBtn").onclick = () => sendToZapier("To Do");
   document.getElementById("inProgressBtn").onclick = () => sendToZapier("In Progress");
   document.getElementById("completeBtn").onclick = () => sendToZapier("Complete");
 }
 
-// Send task to webhook
+// === SEND TO WEBHOOK ===
 function sendToZapier(status) {
   const task = capturedText || document.getElementById("output").value.trim();
   if (!task) return alert("Please record or type a task before submitting.");
@@ -93,12 +91,12 @@ function sendToZapier(status) {
     });
 }
 
-// Load tasks from CSV and display
+// === LOAD TASKS FROM GOOGLE SHEET CSV ===
 function loadTasks() {
   fetch(taskCSVUrl)
     .then((res) => res.text())
     .then((data) => {
-      const rows = data.split("\n").slice(1); // skip header
+      const rows = data.split("\n").slice(1); // Skip header
       const filtered = rows.filter(row => row.includes(currentSite));
       const list = document.getElementById("taskList");
       list.innerHTML = "";
@@ -109,23 +107,22 @@ function loadTasks() {
       }
 
       filtered.forEach(row => {
-        const [timestamp, site, task, status] = row.split(",");
-
-        // Clean up status tag from task if embedded
-        const match = task.match(/\[status:\s*(.*?)\]/i);
-        let cleanTask = task.replace(/\[status:.*?\]/i, "").trim();
-        let statusText = status?.trim() || (match ? match[1] : "To Do");
+        const columns = row.split(",");
+        const timestamp = columns[0];
+        const site = columns[1];
+        const status = columns[columns.length - 1].trim();
+        const task = columns.slice(2, columns.length - 1).join(",").trim();
 
         let icon = "➕", css = "todo";
-        if (statusText.toLowerCase() === "in progress") {
+        if (status.toLowerCase() === "in progress") {
           icon = "🕒"; css = "in-progress";
-        } else if (statusText.toLowerCase() === "complete") {
+        } else if (status.toLowerCase() === "complete") {
           icon = "✅"; css = "complete";
         }
 
         const li = document.createElement("li");
         li.className = css;
-        li.innerHTML = `<span>${icon}</span> ${cleanTask}`;
+        li.innerHTML = `<span>${icon}</span> ${task}`;
         list.appendChild(li);
       });
     })
@@ -135,7 +132,7 @@ function loadTasks() {
     });
 }
 
-// Update timestamp display
+// === TIMESTAMP ===
 function updateTimestamp() {
   const now = new Date();
   document.getElementById("timestamp").textContent =
