@@ -4,20 +4,31 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>PunchList Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f0f6ff;
+      font-family: 'Roboto Slab', serif;
+      background-color: #e0e0e0;
       padding: 2rem;
-      color: #003366;
+      color: #1c1c1c;
+      text-align: center;
     }
     h1 {
-      text-align: center;
       color: #003366;
+      margin-bottom: 1rem;
     }
     .container {
       max-width: 600px;
       margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      padding: 2rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    select {
+      font-size: 18px;
+      margin-bottom: 1rem;
+      padding: 0.5rem;
     }
     textarea {
       width: 100%;
@@ -25,31 +36,45 @@
       margin: 1rem 0;
       font-size: 16px;
       padding: 0.5rem;
-    }
-    select {
-      font-size: 16px;
-      margin-bottom: 1rem;
-      padding: 0.5rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
     }
     button {
-      margin: 0.25rem;
-      padding: 0.75rem 1rem;
+      margin: 0.4rem;
+      padding: 0.75rem 1.2rem;
       font-size: 16px;
       border: none;
-      border-radius: 5px;
+      border-radius: 6px;
       cursor: pointer;
+      font-weight: bold;
     }
     .start { background-color: #007bff; color: white; }
     .retry { background-color: #6c757d; color: white; }
+
+    .action-group {
+      margin-top: 2rem;
+    }
+    .submit, .progress, .complete {
+      font-size: 14px;
+      padding: 0.5rem 1rem;
+      margin: 0.25rem;
+    }
     .submit { background-color: #28a745; color: white; }
     .progress { background-color: #ffc107; color: black; }
     .complete { background-color: #17a2b8; color: white; }
+
     ul#taskList {
-      margin-top: 1.5rem;
-      padding-left: 1.25rem;
+      margin-top: 2rem;
+      padding-left: 0;
+      list-style: none;
     }
     ul#taskList li {
       margin-bottom: 0.5rem;
+      padding: 0.5rem;
+      background: #f7f7f7;
+      border-radius: 4px;
+      font-size: 15px;
+      text-align: left;
     }
   </style>
 </head>
@@ -57,7 +82,7 @@
   <div class="container">
     <h1>PunchList Pro</h1>
 
-    <label for="siteSelector">Select Job Site:</label>
+    <label for="siteSelector">Select Job Site:</label><br/>
     <select id="siteSelector">
       <option value="Site A">Site A</option>
       <option value="Site B">Site B</option>
@@ -68,9 +93,12 @@
 
     <button id="startBtn" class="start">🎤 Start Voice Note</button>
     <button id="retryBtn" class="retry">🔁 Retry</button>
-    <button id="submitBtn" class="submit">✅ Submit</button>
-    <button id="inProgressBtn" class="progress">🚧 In Progress</button>
-    <button id="completeBtn" class="complete">🏁 Complete</button>
+
+    <div class="action-group">
+      <button id="submitBtn" class="submit">➕ To Do</button>
+      <button id="inProgressBtn" class="progress">🚧 In Progress</button>
+      <button id="completeBtn" class="complete">✅ Complete</button>
+    </div>
 
     <ul id="taskList"></ul>
   </div>
