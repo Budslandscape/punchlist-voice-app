@@ -1,28 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PunchList Voice App</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Voice Test</title>
 </head>
 <body>
-  <h1>PunchList Voice</h1>
-  <label for="site">Choose Site:</label>
-  <select id="site">
-    <option value="">-- Select a Site --</option>
-    <option value="Site A">Site A</option>
-    <option value="Site B">Site B</option>
-    <option value="Site C">Site C</option>
-  </select>
+  <h2>Voice Recognition Test</h2>
+  <button id="startBtn">Start Voice Note</button>
+  <button id="retryBtn">Retry</button>
+  <textarea id="output" rows="5" cols="50" placeholder="Your text will appear here..."></textarea>
 
-  <button id="start">🎙️ Start Recording</button>
-  <button id="retry">🔁 Retry</button>
-  <textarea id="transcript" rows="4" placeholder="Transcribed task appears here..."></textarea>
-  <button id="send">📤 Send to PunchList</button>
+  <script>
+    let recognition;
+    let capturedText = "";
 
-  <p id="status"></p>
+    window.addEventListener("DOMContentLoaded", () => {
+      const startBtn = document.getElementById("startBtn");
+      const retryBtn = document.getElementById("retryBtn");
+      const output = document.getElementById("output");
 
-  <script src="script.js"></script>
+      if (!("webkitSpeechRecognition" in window)) {
+        alert("Speech recognition not supported in this browser.");
+        return;
+      }
+
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = "en-US";
+
+      recognition.onresult = (event) => {
+        capturedText = event.results[0][0].transcript;
+        output.value = capturedText;
+      };
+
+      recognition.onerror = (event) => {
+        alert("Speech error: " + event.error);
+      };
+
+      startBtn.onclick = () => recognition.start();
+      retryBtn.onclick = () => {
+        output.value = "";
+        capturedText = "";
+      };
+    });
+  </script>
 </body>
 </html>
