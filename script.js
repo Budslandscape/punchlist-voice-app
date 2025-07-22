@@ -13,7 +13,7 @@ window.addEventListener("DOMContentLoaded", () => {
   setupVoiceToText();
   setupButtons();
   loadTasks();
-  setInterval(loadTasks, 30000); // Refresh task list every 30s
+  setInterval(loadTasks, 30000); // Refresh task list every 30 seconds
 });
 
 // === FUNCTIONS ===
@@ -60,14 +60,14 @@ function setupVoiceToText() {
   };
 }
 
-// Buttons
+// Button actions
 function setupButtons() {
   document.getElementById("submitBtn").onclick = () => sendToWebhook("New");
   document.getElementById("inProgressBtn").onclick = () => sendToWebhook("In Progress");
   document.getElementById("completeBtn").onclick = () => sendToWebhook("Complete");
 }
 
-// Send to Make.com
+// Send task to Make webhook
 function sendToWebhook(status) {
   const task = capturedText || document.getElementById("output").value.trim();
   if (!task) return alert("Please record or type a task first.");
@@ -95,6 +95,8 @@ function sendToWebhook(status) {
 
 // Load live tasks from Google Sheet
 function loadTasks() {
+  console.log("🔁 Loading tasks for:", currentSite);
+
   fetch(taskCSVUrl)
     .then((res) => res.text())
     .then((csv) => {
@@ -104,15 +106,21 @@ function loadTasks() {
 
       rows.forEach(row => {
         const [site, task, status] = row.split(",");
+        console.log("➡️ Row:", row);
+
         if (site && task && site.trim() === currentSite) {
           const li = document.createElement("li");
           li.textContent = `${task.trim()} (${(status || "Pending").trim()})`;
           taskList.appendChild(li);
         }
       });
+
+      if (!taskList.innerHTML) {
+        taskList.innerHTML = `<li>⚠️ No tasks found for ${currentSite}</li>`;
+      }
     })
     .catch((err) => {
-      console.error("Error loading tasks:", err);
+      console.error("❌ Error loading tasks:", err);
       document.getElementById("taskList").innerHTML = "<li>⚠️ Could not load tasks</li>";
     });
 }
