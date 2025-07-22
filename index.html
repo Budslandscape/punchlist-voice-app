@@ -16,13 +16,19 @@
 
     h1 {
       color: #003366;
-      margin-bottom: 1rem;
+      margin-bottom: 0.5rem;
       padding: 0.5rem 1rem;
       border: 2px solid #003366;
       border-radius: 8px;
       display: inline-block;
       background-color: #ffffff;
       color: #003366;
+    }
+
+    .timestamp {
+      font-size: 12px;
+      margin-bottom: 1.5rem;
+      color: #cccccc;
     }
 
     .container {
@@ -35,10 +41,19 @@
       color: #1c1c1c;
     }
 
+    .site-select-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
     select {
-      font-size: 18px;
-      margin-bottom: 1rem;
+      font-size: 16px;
       padding: 0.5rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
     }
 
     textarea {
@@ -59,6 +74,11 @@
       border-radius: 6px;
       cursor: pointer;
       font-weight: bold;
+      transition: background-color 0.2s ease;
+    }
+
+    button:hover {
+      opacity: 0.9;
     }
 
     .start, .retry {
@@ -70,15 +90,16 @@
       margin-top: 2rem;
     }
 
-    .submit, .progress, .complete {
-      font-size: 14px;
-      padding: 0.5rem 1rem;
-      margin: 0.25rem;
-    }
-
     .submit { background-color: #28a745; color: white; }
     .progress { background-color: #ffc107; color: black; }
     .complete { background-color: #17a2b8; color: white; }
+
+    .refresh-btn {
+      background-color: #6c757d;
+      color: white;
+      margin-top: 1rem;
+      font-size: 14px;
+    }
 
     ul#taskList {
       margin-top: 2rem;
@@ -89,23 +110,32 @@
     ul#taskList li {
       margin-bottom: 0.5rem;
       padding: 0.5rem;
-      background: #f7f7f7;
       border-radius: 4px;
       font-size: 15px;
       text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
+
+    .todo { background: #e9f5e9; }         /* Greenish */
+    .in-progress { background: #fff7e6; }  /* Yellowish */
+    .complete { background: #e6f3f8; }     /* Blueish */
   </style>
 </head>
 <body>
   <div class="container">
     <h1>PunchList Pro</h1>
+    <div class="timestamp" id="timestamp"></div>
 
-    <label for="siteSelector">Select Job Site:</label><br/>
-    <select id="siteSelector">
-      <option value="Site A">Site A</option>
-      <option value="Site B">Site B</option>
-      <option value="Site C">Site C</option>
-    </select>
+    <div class="site-select-wrapper">
+      <label for="siteSelector">Select Job Site:</label>
+      <select id="siteSelector">
+        <option value="Site A">Site A</option>
+        <option value="Site B">Site B</option>
+        <option value="Site C">Site C</option>
+      </select>
+    </div>
 
     <textarea id="output" placeholder="Speak or type a task..."></textarea><br/>
 
@@ -117,6 +147,8 @@
       <button id="inProgressBtn" class="progress">🚧 In Progress</button>
       <button id="completeBtn" class="complete">✅ Complete</button>
     </div>
+
+    <button id="refreshBtn" class="refresh-btn">🔄 Refresh Tasks</button>
 
     <ul id="taskList"></ul>
   </div>
