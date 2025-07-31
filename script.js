@@ -21,6 +21,8 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 // === FUNCTIONS ===
+
+// Dropdown site selection
 function setupSiteDropdown() {
   const dropdown = document.getElementById("siteSelector");
   currentSite = dropdown.value;
@@ -31,6 +33,7 @@ function setupSiteDropdown() {
   });
 }
 
+// Voice-to-text
 function setupVoiceToText() {
   const startBtn = document.getElementById("startBtn");
   const retryBtn = document.getElementById("retryBtn");
@@ -63,12 +66,14 @@ function setupVoiceToText() {
   };
 }
 
+// Buttons for adding tasks
 function setupButtons() {
   document.getElementById("submitBtn").onclick = () => sendToWebhook("To Do");
   document.getElementById("inProgressBtn").onclick = () => sendToWebhook("In Progress");
   document.getElementById("completeBtn").onclick = () => sendToWebhook("Complete");
 }
 
+// Send new task
 function sendToWebhook(status) {
   const task = capturedText || document.getElementById("output").value.trim();
   if (!task) return alert("Please record or type a task first.");
@@ -76,7 +81,7 @@ function sendToWebhook(status) {
   fetch(zapierWebhookURL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ site: currentSite, task, status, row: null }) // always include row field
+    body: JSON.stringify({ site: currentSite, task, status, row: null })
   })
     .then((res) => {
       if (res.ok) {
@@ -94,13 +99,12 @@ function sendToWebhook(status) {
     });
 }
 
+// Update task status
 function updateTaskStatus(task, newStatus, row) {
-  console.log("Updating task:", { site: currentSite, task, status: newStatus, row });
-
   fetch(zapierWebhookURL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ site: currentSite, task, status: newStatus, row })
+    body: JSON.stringify({ action: "update", site: currentSite, task, status: newStatus, row })
   })
     .then((res) => {
       if (res.ok) {
@@ -116,6 +120,31 @@ function updateTaskStatus(task, newStatus, row) {
     });
 }
 
+// Delete task
+function deleteTask(task, row) {
+  if (!confirm(`Are you sure you want to delete "${task}"?`)) return;
+
+  fetch(zapierWebhookURL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "delete", row })
+  })
+    .then((res) => {
+      if (res.ok) {
+        alert(`🗑️ Task "${task}" deleted.`);
+        loadTasks();
+        updateTimestamp();
+      } else {
+        alert("❌ Failed to delete task.");
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      alert("❌ Error deleting task: " + err.message);
+    });
+}
+
+// Load and display tasks
 function loadTasks() {
   fetch(taskCSVUrl)
     .then((res) => res.text())
@@ -130,7 +159,7 @@ function loadTasks() {
         const status = cols[2]?.trim();
 
         if (site === currentSite && task) {
-          const item = { task, status, row: index + 2 }; // include row number
+          const item = { task, status, row: index + 2 };
           if (grouped[status]) grouped[status].push(item);
           else grouped.unknown.push(item);
         }
@@ -159,13 +188,12 @@ function loadTasks() {
             statusSelect.appendChild(option);
           });
 
-          // Pass row number explicitly
           statusSelect.onchange = () => updateTaskStatus(item.task, statusSelect.value, item.row);
 
           const deleteBtn = document.createElement("button");
           deleteBtn.textContent = "🗑️";
           deleteBtn.className = "delete-btn";
-          deleteBtn.onclick = () => alert("🛠️ Delete functionality coming soon");
+          deleteBtn.onclick = () => deleteTask(item.task, item.row);
 
           const controls = document.createElement("div");
           controls.className = "task-controls";
@@ -188,6 +216,7 @@ function loadTasks() {
     });
 }
 
+// Style mapping
 function getStatusClass(status) {
   const s = status?.toLowerCase();
   if (s === "to do") return "todo";
@@ -196,6 +225,7 @@ function getStatusClass(status) {
   return "unknown";
 }
 
+// Timestamp
 function updateTimestamp() {
   const now = new Date();
   document.getElementById("timestamp").textContent =
