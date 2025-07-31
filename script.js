@@ -76,7 +76,7 @@ function sendToWebhook(status) {
   fetch(zapierWebhookURL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ site: currentSite, task, status })
+    body: JSON.stringify({ site: currentSite, task, status, row: null }) // always include row field
   })
     .then((res) => {
       if (res.ok) {
@@ -95,6 +95,8 @@ function sendToWebhook(status) {
 }
 
 function updateTaskStatus(task, newStatus, row) {
+  console.log("Updating task:", { site: currentSite, task, status: newStatus, row });
+
   fetch(zapierWebhookURL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -128,7 +130,7 @@ function loadTasks() {
         const status = cols[2]?.trim();
 
         if (site === currentSite && task) {
-          const item = { task, status, row: index + 2 }; // Row number (headers in row 1)
+          const item = { task, status, row: index + 2 }; // include row number
           if (grouped[status]) grouped[status].push(item);
           else grouped.unknown.push(item);
         }
@@ -157,6 +159,7 @@ function loadTasks() {
             statusSelect.appendChild(option);
           });
 
+          // Pass row number explicitly
           statusSelect.onchange = () => updateTaskStatus(item.task, statusSelect.value, item.row);
 
           const deleteBtn = document.createElement("button");
