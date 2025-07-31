@@ -97,18 +97,16 @@ function loadTasks() {
       const rows = csv.split("\n").slice(1);
       const grouped = { "To Do": [], "In Progress": [], "Complete": [], unknown: [] };
 
-      rows.forEach(row => {
-        const cols = row.split(",");
-        const site = cols[0]?.trim();
-        const task = cols[1]?.trim();
-        const status = cols[2]?.trim();
+      rows.forEach((row, index) => {
+  const cols = row.split(",");
+  const site = cols[0]?.trim();
+  const task = cols[1]?.trim();
+  const status = cols[2]?.trim();
 
-        if (site === currentSite && task) {
-          const item = { task, status };
-          if (grouped[status]) grouped[status].push(item);
-          else grouped.unknown.push(item);
-        }
-      });
+  if (site === currentSite && task) {
+    allTasks.push({ task, status, row: index + 2 }); // +2 since header is row 1
+  }
+});
 
       const taskList = document.getElementById("taskList");
       taskList.innerHTML = "";
