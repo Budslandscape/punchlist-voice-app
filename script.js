@@ -21,8 +21,6 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 // === FUNCTIONS ===
-
-// Dropdown site selection
 function setupSiteDropdown() {
   const dropdown = document.getElementById("siteSelector");
   currentSite = dropdown.value;
@@ -68,23 +66,26 @@ function setupVoiceToText() {
 
 // Buttons for adding tasks
 function setupButtons() {
-  document.getElementById("submitBtn").onclick = () => sendToWebhook("To Do");
-  document.getElementById("inProgressBtn").onclick = () => sendToWebhook("In Progress");
-  document.getElementById("completeBtn").onclick = () => sendToWebhook("Complete");
+  document.getElementById("submitBtn").onclick = () => sendTask("add", "To Do");
+  document.getElementById("inProgressBtn").onclick = () => sendTask("add", "In Progress");
+  document.getElementById("completeBtn").onclick = () => sendTask("add", "Complete");
 }
 
-// Send new task
-function sendToWebhook(status) {
-  const task = capturedText || document.getElementById("output").value.trim();
+// Send a task with action
+function sendTask(action, status, row = null, taskOverride = null) {
+  const task = taskOverride || capturedText || document.getElementById("output").value.trim();
   if (!task) return alert("Please record or type a task first.");
 
   fetch(zapierWebhookURL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ site: currentSite, task, status, row: null })
+    body: JSON.stringify({ action, site: currentSite, task, status, row })
   })
     .then((res) => {
       if (res.ok) {
+        if (action === "delete") {
+          alert(`🗑️ Task "${task}" deleted.`);
+        }
         document.getElementById("output").value = "";
         capturedText = "";
         loadTasks();
@@ -101,47 +102,13 @@ function sendToWebhook(status) {
 
 // Update task status
 function updateTaskStatus(task, newStatus, row) {
-  fetch(zapierWebhookURL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "update", site: currentSite, task, status: newStatus, row })
-  })
-    .then((res) => {
-      if (res.ok) {
-        loadTasks();
-        updateTimestamp();
-      } else {
-        alert("❌ Failed to update task.");
-      }
-    })
-    .catch((err) => {
-      console.error(err);
-      alert("❌ Error updating task.");
-    });
+  sendTask("update", newStatus, row, task);
 }
 
 // Delete task
 function deleteTask(task, row) {
   if (!confirm(`Are you sure you want to delete "${task}"?`)) return;
-
-  fetch(zapierWebhookURL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "delete", row })
-  })
-    .then((res) => {
-      if (res.ok) {
-        alert(`🗑️ Task "${task}" deleted.`);
-        loadTasks();
-        updateTimestamp();
-      } else {
-        alert("❌ Failed to delete task.");
-      }
-    })
-    .catch((err) => {
-      console.error(err);
-      alert("❌ Error deleting task: " + err.message);
-    });
+  sendTask("delete", null, row, task);
 }
 
 // Load and display tasks
@@ -187,7 +154,6 @@ function loadTasks() {
             if (opt === item.status) option.selected = true;
             statusSelect.appendChild(option);
           });
-
           statusSelect.onchange = () => updateTaskStatus(item.task, statusSelect.value, item.row);
 
           const deleteBtn = document.createElement("button");
