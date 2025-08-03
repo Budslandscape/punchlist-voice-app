@@ -21,6 +21,8 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 // === FUNCTIONS ===
+
+// Site selection
 function setupSiteDropdown() {
   const dropdown = document.getElementById("siteSelector");
   currentSite = dropdown.value;
@@ -64,38 +66,38 @@ function setupVoiceToText() {
   };
 }
 
-// Buttons for adding tasks
+// Set up buttons
 function setupButtons() {
   document.getElementById("submitBtn").onclick = () => sendTask("add", "To Do");
   document.getElementById("inProgressBtn").onclick = () => sendTask("add", "In Progress");
   document.getElementById("completeBtn").onclick = () => sendTask("add", "Complete");
 }
 
-// Send a task with action
+// Send task with action + row
 function sendTask(action, status, row = null, taskOverride = null) {
   const task = taskOverride || capturedText || document.getElementById("output").value.trim();
-  if (!task) return alert("Please record or type a task first.");
+  if (!task && action !== "delete") return alert("Please record or type a task first.");
+
+  const payload = { action, site: currentSite, task, status, row };
+  console.log("📤 Sending payload:", payload);
 
   fetch(zapierWebhookURL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action, site: currentSite, task, status, row })
+    body: JSON.stringify(payload)
   })
     .then((res) => {
       if (res.ok) {
-        if (action === "delete") {
-          alert(`🗑️ Task "${task}" deleted.`);
-        }
         document.getElementById("output").value = "";
         capturedText = "";
         loadTasks();
         updateTimestamp();
       } else {
-        alert("❌ Failed to send. Try again.");
+        res.text().then(text => alert("❌ Failed: " + text));
       }
     })
     .catch((err) => {
-      console.error(err);
+      console.error("❌ Error sending:", err);
       alert("❌ Error: " + err.message);
     });
 }
@@ -111,7 +113,7 @@ function deleteTask(task, row) {
   sendTask("delete", null, row, task);
 }
 
-// Load and display tasks
+// Load tasks
 function loadTasks() {
   fetch(taskCSVUrl)
     .then((res) => res.text())
