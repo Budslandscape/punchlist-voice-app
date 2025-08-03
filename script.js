@@ -33,7 +33,7 @@ function setupSiteDropdown() {
   });
 }
 
-// Voice-to-text
+// Voice-to-text (US English + cleanup)
 function setupVoiceToText() {
   const startBtn = document.getElementById("startBtn");
   const retryBtn = document.getElementById("retryBtn");
@@ -47,12 +47,17 @@ function setupVoiceToText() {
   recognition = new webkitSpeechRecognition();
   recognition.continuous = false;
   recognition.interimResults = false;
-  recognition.lang = "en-US";
+  recognition.lang = "en-US"; // 🔹 US English for better accuracy
 
   recognition.onresult = (event) => {
     let text = event.results[0][0].transcript;
+
+    // 🔹 Clean up: trim spaces + capitalize
+    text = text.trim();
     capturedText = text.charAt(0).toUpperCase() + text.slice(1);
+
     output.value = capturedText;
+    console.log("🎤 Captured:", capturedText);
   };
 
   recognition.onerror = (event) => {
